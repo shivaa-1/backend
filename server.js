@@ -137,7 +137,7 @@ app.post('/resetpassword/:token'),async(req,res)=>{
 
     try {
         //find the user based on token in db
-        const userToken= await User.findOne({forgotToken:req.body.token});
+        const userToken= await User.findOne({forgotToken:req.params.token});
 
         if (userToken!==null) {
             //decode the token
@@ -174,7 +174,7 @@ app.post('/resetpassword/:token'),async(req,res)=>{
             res.send({
                 status:204,
                 success:true,
-                message:"This link is already used"
+                message:"This link is already used to reset the password"
             })
         }
         
@@ -190,9 +190,34 @@ app.post('/resetpassword/:token'),async(req,res)=>{
 }
 
 //route to save new password
-app.post('/newpassword',(req,res)=>{
+app.post('/newpassword',async(req,res)=>{
+    try{
+        const {token}=req.params;
+        const decode = await jwtDecode(token);
+       
+        const newpassword= req.body.password;
+        const hashpassword = await bcrypt.hash(newpassword,10);
 
-})
+        const data =await User.findOneAndUpdate({email:decode.email},{set$:{password:hashpassword,forgotToken:""}},{new:true});
+
+        res.send({
+            status:200,
+            success:true,
+            message:"Password Updated Successfully",
+            data
+        })
+       
+  
+    }catch (error){
+        res.send({
+            status:401,
+            success:false,
+            message:error
+        })
+
+    }
+
+});
 
 //listen to the port and server
 app.listen(PORT,()=>{
